@@ -36,3 +36,17 @@
     transform: rotate(360deg);
   }
 }
+
+.edit-btm {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.edit-btm:hover {
+  background-color: #0056b3;
+}

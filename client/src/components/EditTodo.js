@@ -28,7 +28,7 @@ const EditTodo = ({ todo }) => {
       {/* <!-- Button to Open the Modal --> */}
       <button
         type="button"
-        class="btn btn-primary"
+        class="edit-btm"
         data-bs-toggle="modal"
         data-bs-target={`#id${todo.todo_id}`}
       >
