@@ -1,8 +1,7 @@
 const { Pool } = require("pg");
-const fs = require("fs");
+require("dotenv").config();
 
-// import password from a local file for security
-const dbPassword = fs.readFileSync(__dirname + "/db_pass.txt", "utf8").trim();
+const dbPassword = (process.env.POSTGRES_U_PASS).trim();
 
 const pool = new Pool({
   user: "postgres",
@@ -20,6 +19,4 @@ const userInfoPool = new Pool({
   database: "user_info",
 });
 
-module.exports = pool;
-
-module.exports = userInfoPool;
+module.exports = { pool, userInfoPool };

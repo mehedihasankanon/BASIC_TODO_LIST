@@ -26,7 +26,6 @@ const EditTodo = ({ todo }) => {
 
   return (
     <Fragment>
-      {/* <!-- Button to Open the Modal --> */}
       <button
         type="button"
         class="edit-btm"
@@ -36,7 +35,6 @@ const EditTodo = ({ todo }) => {
         Edit
       </button>
 
-      {/* <!-- The Modal --> */}
       <div
         class="modal"
         id={`id${todo.todo_id}`}
@@ -44,7 +42,6 @@ const EditTodo = ({ todo }) => {
       >
         <div class="modal-dialog">
           <div class="modal-content">
-            {/* <!-- Modal Header --> */}
             <div class="modal-header">
               <h4 class="modal-title">Edit Todo</h4>
               <button
@@ -55,7 +52,6 @@ const EditTodo = ({ todo }) => {
               ></button>
             </div>
 
-            {/* <!-- Modal body --> */}
             <div class="modal-body">
               {" "}
               <input
@@ -66,7 +62,6 @@ const EditTodo = ({ todo }) => {
               ></input>{" "}
             </div>
 
-            {/* <!-- Modal footer --> */}
             <div class="modal-footer">
               <button
                 type="button"
