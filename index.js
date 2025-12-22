@@ -21,7 +21,7 @@ app.post("/todos", async (req, res) => {
     const { description } = req.body;
 
     const newTodo = await pool.query(
-      "INSERT INTO todo (description) VALUES($1) RETURNING *",
+      "INSERT INTO todo (description, updated_at) VALUES($1, CURRENT_TIMESTAMP) RETURNING *",
       [description]
     );
 
@@ -35,7 +35,9 @@ app.post("/todos", async (req, res) => {
 
 app.get("/todos", async (req, res) => {
   try {
-    const allTodos = await pool.query("SELECT * FROM todo");
+    const allTodos = await pool.query(
+      "SELECT * FROM todo ORDER BY todo_id DESC"
+    );
     res.json(allTodos.rows);
   } catch (err) {
     console.error(err.message);
@@ -68,11 +70,12 @@ app.put("/todos/:id", async (req, res) => {
     const { description } = req.body;
 
     const updateTodo = await pool.query(
-      "UPDATE todo SET description = $1 WHERE todo_id = $2",
+      "UPDATE todo SET description = $1, updated_at = CURRENT_TIMESTAMP WHERE todo_id = $2",
       [description, id]
     );
 
     res.json("updated Todo");
+    // console.log(updateTodo);
   } catch (err) {
     console.error(err.message);
   }
