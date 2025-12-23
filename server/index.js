@@ -47,32 +47,35 @@ app.post("/auth/register", async (req, res) => {
   }
 });
 
-
 // login route
 
 app.post("/auth/login", async (req, res) => {
   try {
-    
-    const {email, password} = req.body;
+    const { email, password } = req.body;
 
     // check if user exists
-    const user = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+    const user = await pool.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
 
-    if(user.rows.length === 0){
-      return res.status(409).json({message : "User not found. Register first."});
+    if (user.rows.length === 0) {
+      return res
+        .status(409)
+        .json({ message: "User not found. Register first." });
     }
 
     // returns a boolean to check if the password is correct
-    const validPass = await bcrypt.compare(password, user.rows[0].user_password);
+    const validPass = await bcrypt.compare(
+      password,
+      user.rows[0].user_password
+    );
 
-    if(!validPass) {
-      return res.status(409).json({message : "Incorrect password"});
+    if (!validPass) {
+      return res.status(409).json({ message: "Incorrect password" });
     }
 
     // TODO: replace with jwt generation
-    res.json({message: "Login successful"});
-
-
+    res.json({ message: "Login successful" });
   } catch (error) {
     console.error(error.message);
   }
