@@ -2,8 +2,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 
-const pool = require("./db.js");
-const userInfoPool = require("./db.js");
+const { pool } = require("../db.js");
 
 // middleware
 app.use(cors());
@@ -64,7 +63,7 @@ app.post("/auth/login", async (req, res) => {
     }
 
     // returns a boolean to check if the password is correct
-    const validPass = await bcrypt.compare(password, user.rows[0].password);
+    const validPass = await bcrypt.compare(password, user.rows[0].user_password);
 
     if(!validPass) {
       return res.status(409).json({message : "Incorrect password"});
