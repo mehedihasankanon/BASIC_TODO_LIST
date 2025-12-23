@@ -11,6 +11,74 @@ app.use(express.json());
 
 // routes
 
+// register and login routes
+
+// register route
+
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
+
+app.post("/auth/register", async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    // check if user exists already
+    const user = await pool.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
+
+    if (user.rows.length > 0) {
+      return res.status(409).json({ message: "User already exists" });
+    }
+
+    // hash the password
+    const salt = await bcrypt.genSalt(saltRounds);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // insert the new user into the database
+    const newUser = await pool.query(
+      "INSERT into users (user_name, user_email, user_password) VALUES ($1, $2, $3) RETURNING *",
+      [username, email, hashedPassword]
+    );
+
+    // now we need to generate a jwt for the user
+    // TODO: implement jwt generation here
+  } catch (error) {
+    console.error(error.message);
+  }
+});
+
+
+// login route
+
+app.post("/auth/login", async (req, res) => {
+  try {
+    
+    const {email, password} = req.body;
+
+    // check if user exists
+    const user = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+
+    if(user.rows.length === 0){
+      return res.status(409).json({message : "User not found. Register first."});
+    }
+
+    // returns a boolean to check if the password is correct
+    const validPass = await bcrypt.compare(password, user.rows[0].password);
+
+    if(!validPass) {
+      return res.status(409).json({message : "Incorrect password"});
+    }
+
+    // TODO: replace with jwt generation
+    res.json({message: "Login successful"});
+
+
+  } catch (error) {
+    console.error(error.message);
+  }
+});
+
 // create a todo
 
 app.post("/todos", async (req, res) => {

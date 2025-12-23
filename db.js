@@ -11,12 +11,4 @@ const pool = new Pool({
   database: "newtest",
 });
 
-const userInfoPool = new Pool({
-  user: "postgres",
-  password: dbPassword,
-  host: "localhost",
-  port: 5432,
-  database: "user_info",
-});
-
-module.exports = { pool, userInfoPool };
+module.exports = { pool };
