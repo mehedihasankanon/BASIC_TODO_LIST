@@ -2,6 +2,8 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 
+import { generateJwtToken, verifyJwtToken } from './utils/jwt.js';
+
 const { pool } = require("../db.js");
 
 // middleware
@@ -9,8 +11,6 @@ app.use(cors());
 app.use(express.json());
 
 // routes
-
-// register and login routes
 
 // register route
 
@@ -41,7 +41,10 @@ app.post("/auth/register", async (req, res) => {
     );
 
     // now we need to generate a jwt for the user
-    // TODO: implement jwt generation here
+    const token = generateJwtToken(newUser.rows[0].user_id, email);
+
+    return res.status(201).json({ message: "User registered successfully", token: token });
+
   } catch (error) {
     console.error(error.message);
   }
