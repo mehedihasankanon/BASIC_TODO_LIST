@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 
-import { generateJwtToken, verifyJwtToken } from './utils/jwt.js';
+import { generateJwtToken, verifyJwtToken } from "./utils/jwt.js";
 
 const { pool } = require("../db.js");
 
@@ -43,8 +43,9 @@ app.post("/auth/register", async (req, res) => {
     // now we need to generate a jwt for the user
     const token = generateJwtToken(newUser.rows[0].user_id, email);
 
-    return res.status(201).json({ message: "User registered successfully", token: token });
-
+    return res
+      .status(201)
+      .json({ message: "User registered successfully", token: token });
   } catch (error) {
     console.error(error.message);
   }
@@ -77,8 +78,10 @@ app.post("/auth/login", async (req, res) => {
       return res.status(409).json({ message: "Incorrect password" });
     }
 
-    // TODO: replace with jwt generation
-    res.json({ message: "Login successful" });
+    // jwt generation
+    const token = generateJwtToken(user.rows[0].user_id, email);
+
+    return res.status(200).json({ message: "Login successful", token: token });
   } catch (error) {
     console.error(error.message);
   }
