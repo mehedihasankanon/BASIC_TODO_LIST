@@ -2,6 +2,9 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 
+const dotenv = require("dotenv");
+dotenv.config();
+
 import { generateJwtToken, verifyJwtToken } from "./utils/jwt.js";
 
 const { pool } = require("../db.js");
@@ -15,7 +18,7 @@ app.use(express.json());
 // register route
 
 const bcrypt = require("bcrypt");
-const saltRounds = 10;
+const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10;
 
 app.post("/auth/register", async (req, res) => {
   try {
