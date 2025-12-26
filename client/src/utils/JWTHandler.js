@@ -18,5 +18,9 @@ export function setRefreshToken(token) {
     localStorage.setItem("refreshToken", token);
 }
 
+export function removeTokens() {
+    sessionStorage.removeItem("jwtToken");
+    localStorage.removeItem("refreshToken");
+}
 
-exports = {getJwtToken, setJwtToken, getRefreshToken, setRefreshToken};
+export {getJwtToken, setJwtToken, getRefreshToken, setRefreshToken, removeTokens};
