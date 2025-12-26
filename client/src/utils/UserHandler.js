@@ -46,11 +46,13 @@ export async function userLogin({ email, password }) {
     if (!response.ok) {
       throw new Error(data.message || "Login failed");
     }
-    
-    // placeholder. 
-    // TODO: store jwt tokens
+
+    setJwtToken(data.token);
+    setRefreshToken(data.refreshToken);
     return data;
   } catch (error) {
     throw error;
   }
 }
+
+export {isUserLoggedIn, registerUser, userLogin};

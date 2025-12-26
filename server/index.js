@@ -5,7 +5,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 dotenv.config();
 
-import { generateJwtToken, verifyJwtToken } from "./utils/jwt.js";
+import { generateJwtToken, verifyJwtToken, generateRefreshToken, verifyRefreshToken } from "./utils/jwt.js";
 
 const { pool } = require("../db.js");
 
@@ -45,10 +45,11 @@ app.post("/auth/register", async (req, res) => {
 
     // now we need to generate a jwt for the user
     const token = generateJwtToken(newUser.rows[0].user_id, email);
+    const refreshToken = generateRefreshToken(newUser.rows[0].user_id, email);
 
     return res
       .status(201)
-      .json({ message: "User registered successfully", token: token });
+      .json({ message: "User registered successfully", token: token, refreshToken: refreshToken });
   } catch (error) {
     console.error(error.message);
   }
@@ -83,11 +84,39 @@ app.post("/auth/login", async (req, res) => {
 
     // jwt generation
     const token = generateJwtToken(user.rows[0].user_id, email);
+    const refreshToken = generateRefreshToken(user.rows[0].user_id, email);
 
-    return res.status(200).json({ message: "Login successful", token: token });
+    return res.status(200).json({ message: "Login successful", token: token, refreshToken: refreshToken });
   } catch (error) {
     console.error(error.message);
   }
+});
+
+// refresh route
+
+app.post("/auth/refresh", async (req, res) => {
+
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token missing" });
+    }
+
+    // verify the refresh token
+    const decoded = verifyRefreshToken(refreshToken);
+
+    if(!decoded) {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    }
+
+    const newToken = generateJwtToken(decoded.userId, decoded.email);
+
+    return res.status(200).json({ token: newToken });
+  } catch (error) {
+    console.error(error.message);
+  }
+
 });
 
 // create a todo

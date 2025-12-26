@@ -35,7 +35,25 @@ const verifyJwtToken = (token) => {
     }
 }
 
+const generateRefreshToken = (userId, email) => {
+    return jwt.sign (
+        { userId: userId, email: email },
+        jwt_key,
+        { expiresIn: '7d' }
+    );
+}
 
-export { generateJwtToken, verifyJwtToken };
 
+const verifyRefreshToken = (token) => {
+    try {
+        const decoded = jwt.verify(token, jwt_key);
+        return decoded;
+    } catch (err) {
+        console.error("Refresh token verification failed:", err);
+        return null;
+    }
+}
+
+
+export { generateJwtToken, verifyJwtToken, generateRefreshToken, verifyRefreshToken };
 
