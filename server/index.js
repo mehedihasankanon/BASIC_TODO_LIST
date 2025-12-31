@@ -18,8 +18,12 @@ const { pool } = require("../db.js");
 app.use(cors());
 app.use(express.json());
 
+// JWT authentication middleware
 const authenticateJWT = (req, res, next) => {
+  // TODO: find which one is actually correct
+
   const authHeader = req.headers.authorization;
+  // const authHeader = req.headers["authorization"]; // which one??
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.sendStatus(401).json({ message: "No token provided" });
@@ -157,13 +161,13 @@ app.post("/todos", authenticateJWT, async (req, res) => {
   // waits for the function to complete before it continues
 
   try {
-    console.log(req.body);
+    // console.log(req.body);
 
     const { description } = req.body;
 
     const newTodo = await pool.query(
-      "INSERT INTO todo (description, updated_at) VALUES($1, CURRENT_TIMESTAMP) RETURNING *",
-      [description]
+      "INSERT INTO todo (description, user_id ,updated_at) VALUES($1, $2, CURRENT_TIMESTAMP) RETURNING *",
+      [description, req.user.user_id]
     );
 
     res.json(newTodo.rows[0]);
@@ -177,7 +181,8 @@ app.post("/todos", authenticateJWT, async (req, res) => {
 app.get("/todos", authenticateJWT, async (req, res) => {
   try {
     const allTodos = await pool.query(
-      "SELECT * FROM todo ORDER BY todo_id DESC"
+      "SELECT * FROM todo WHERE user_id = $1 ORDER BY todo_id DESC",
+      [req.user.user_id]
     );
     res.json(allTodos.rows);
   } catch (err) {
@@ -189,13 +194,18 @@ app.get("/todos", authenticateJWT, async (req, res) => {
 
 app.get("/todos/:id", authenticateJWT, async (req, res) => {
   try {
-    console.log(req.params.id);
+    // console.log(req.params.id);
 
     const { id } = req.params;
 
-    const todo = await pool.query("SELECT * FROM todo WHERE todo_id = $1", [
-      id,
-    ]);
+    const todo = await pool.query(
+      "SELECT * FROM todo WHERE todo_id = $1 AND user_id = $2",
+      [id, req.user.user_id]
+    );
+
+    if (todo.rows.length === 0) {
+      return res.status(404).json({ message: "Todo not found" });
+    }
 
     res.json(todo.rows[0]);
   } catch (err) {
@@ -211,11 +221,19 @@ app.put("/todos/:id", authenticateJWT, async (req, res) => {
     const { description } = req.body;
 
     const updateTodo = await pool.query(
-      "UPDATE todo SET description = $1, updated_at = CURRENT_TIMESTAMP WHERE todo_id = $2",
-      [description, id]
+      "UPDATE todo SET description = $1, updated_at = CURRENT_TIMESTAMP WHERE todo_id = $2 AND user_id = $3 RETURNING *",
+      [description, id, req.user.user_id]
     );
 
-    res.json("updated Todo");
+    if (updateTodo.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Todo not found or no changes made" });
+    }
+
+    res.json(updateTodo.rows[0]);
+
+    // res.json("updated Todo");
     // console.log(updateTodo);
   } catch (err) {
     console.error(err.message);
@@ -228,11 +246,16 @@ app.delete("/todos/:id", authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const deleteTodo = await pool.query("DELETE FROM todo WHERE todo_id = $1", [
-      id,
-    ]);
+    const deleteTodo = await pool.query(
+      "DELETE FROM todo WHERE todo_id = $1 AND user_id = $2 RETURNING *",
+      [id, req.user.user_id]
+    );
 
-    res.json("Deleted Todo");
+    if(deleteTodo.rows.length === 0) {
+      return res.status(404).json({ message: "Todo not found" });
+    }
+
+    res.json(deleteTodo.rows[0]);
   } catch (err) {
     console.error(err.message);
   }
