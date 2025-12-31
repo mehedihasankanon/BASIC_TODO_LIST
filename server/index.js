@@ -20,13 +20,10 @@ app.use(express.json());
 
 // JWT authentication middleware
 const authenticateJWT = (req, res, next) => {
-  // TODO: find which one is actually correct
-
-  const authHeader = req.headers.authorization;
-  // const authHeader = req.headers["authorization"]; // which one??
+  const authHeader = req.headers["authorization"];
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.sendStatus(401).json({ message: "No token provided" });
+    return res.status(401).json({ message: "No token provided" });
   }
 
   const token = authHeader.split(" ")[1];
@@ -166,7 +163,7 @@ app.post("/todos", authenticateJWT, async (req, res) => {
     const { description } = req.body;
 
     const newTodo = await pool.query(
-      "INSERT INTO todo (description, user_id ,updated_at) VALUES($1, $2, CURRENT_TIMESTAMP) RETURNING *",
+      "INSERT INTO todo (description, user_id ,updated_at, created_at) VALUES($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *",
       [description, req.user.user_id]
     );
 
@@ -181,7 +178,7 @@ app.post("/todos", authenticateJWT, async (req, res) => {
 app.get("/todos", authenticateJWT, async (req, res) => {
   try {
     const allTodos = await pool.query(
-      "SELECT * FROM todo WHERE user_id = $1 ORDER BY todo_id DESC",
+      "SELECT * FROM todo WHERE user_id = $1 ORDER BY created_at DESC",
       [req.user.user_id]
     );
     res.json(allTodos.rows);
@@ -251,7 +248,7 @@ app.delete("/todos/:id", authenticateJWT, async (req, res) => {
       [id, req.user.user_id]
     );
 
-    if(deleteTodo.rows.length === 0) {
+    if (deleteTodo.rows.length === 0) {
       return res.status(404).json({ message: "Todo not found" });
     }
 
