@@ -5,13 +5,41 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 dotenv.config();
 
-import { generateJwtToken, verifyJwtToken, generateRefreshToken, verifyRefreshToken } from "./utils/jwt.js";
+import {
+  generateJwtToken,
+  verifyJwtToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from "./utils/jwt.js";
 
 const { pool } = require("../db.js");
 
 // middleware
 app.use(cors());
 app.use(express.json());
+
+const authenticateJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.sendStatus(401).json({ message: "No token provided" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = verifyJwtToken(token);
+
+    if (!decoded) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    req.user = decoded;
+    next();
+  } catch (error) {
+    console.error(error.message);
+  }
+};
 
 // routes
 
@@ -47,9 +75,11 @@ app.post("/auth/register", async (req, res) => {
     const token = generateJwtToken(newUser.rows[0].user_id, email);
     const refreshToken = generateRefreshToken(newUser.rows[0].user_id, email);
 
-    return res
-      .status(201)
-      .json({ message: "User registered successfully", token: token, refreshToken: refreshToken });
+    return res.status(201).json({
+      message: "User registered successfully",
+      token: token,
+      refreshToken: refreshToken,
+    });
   } catch (error) {
     console.error(error.message);
   }
@@ -86,7 +116,11 @@ app.post("/auth/login", async (req, res) => {
     const token = generateJwtToken(user.rows[0].user_id, email);
     const refreshToken = generateRefreshToken(user.rows[0].user_id, email);
 
-    return res.status(200).json({ message: "Login successful", token: token, refreshToken: refreshToken });
+    return res.status(200).json({
+      message: "Login successful",
+      token: token,
+      refreshToken: refreshToken,
+    });
   } catch (error) {
     console.error(error.message);
   }
@@ -94,8 +128,7 @@ app.post("/auth/login", async (req, res) => {
 
 // refresh route
 
-app.post("/auth/refresh", async (req, res) => {
-
+app.post("/auth/refresh", authenticateJWT, async (req, res) => {
   try {
     const { refreshToken } = req.body;
 
@@ -106,7 +139,7 @@ app.post("/auth/refresh", async (req, res) => {
     // verify the refresh token
     const decoded = verifyRefreshToken(refreshToken);
 
-    if(!decoded) {
+    if (!decoded) {
       return res.status(403).json({ message: "Invalid refresh token" });
     }
 
@@ -116,12 +149,11 @@ app.post("/auth/refresh", async (req, res) => {
   } catch (error) {
     console.error(error.message);
   }
-
 });
 
 // create a todo
 
-app.post("/todos", async (req, res) => {
+app.post("/todos", authenticateJWT, async (req, res) => {
   // waits for the function to complete before it continues
 
   try {
@@ -142,7 +174,7 @@ app.post("/todos", async (req, res) => {
 
 // get all todos
 
-app.get("/todos", async (req, res) => {
+app.get("/todos", authenticateJWT, async (req, res) => {
   try {
     const allTodos = await pool.query(
       "SELECT * FROM todo ORDER BY todo_id DESC"
@@ -155,7 +187,7 @@ app.get("/todos", async (req, res) => {
 
 // get a todo
 
-app.get("/todos/:id", async (req, res) => {
+app.get("/todos/:id", authenticateJWT, async (req, res) => {
   try {
     console.log(req.params.id);
 
@@ -173,7 +205,7 @@ app.get("/todos/:id", async (req, res) => {
 
 // update a todo
 
-app.put("/todos/:id", async (req, res) => {
+app.put("/todos/:id", authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
     const { description } = req.body;
@@ -192,7 +224,7 @@ app.put("/todos/:id", async (req, res) => {
 
 // delete a todo
 
-app.delete("/todos/:id", async (req, res) => {
+app.delete("/todos/:id", authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
 
