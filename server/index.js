@@ -1,9 +1,13 @@
-const express = require("express");
-const app = express();
-const cors = require("cors");
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
-const dotenv = require("dotenv");
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config({ path: join(__dirname, "..", ".env") });
 
 import {
   generateJwtToken,
@@ -12,7 +16,9 @@ import {
   verifyRefreshToken,
 } from "./utils/jwt.js";
 
-const { pool } = require("../db.js");
+import { pool } from "../db.js";
+
+const app = express();
 
 // middleware
 app.use(cors());
@@ -46,7 +52,7 @@ const authenticateJWT = (req, res, next) => {
 
 // register route
 
-const bcrypt = require("bcrypt");
+import bcrypt from "bcrypt";
 const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10;
 
 app.post("/auth/register", async (req, res) => {

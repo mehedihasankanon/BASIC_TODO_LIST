@@ -1,7 +1,15 @@
-const { Pool } = require("pg");
-require("dotenv").config();
+import pg from "pg";
+import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
-const dbPassword = (process.env.POSTGRES_U_PASS).trim();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config({ path: join(__dirname, ".env") });
+
+const { Pool } = pg;
+const dbPassword = process.env.POSTGRES_U_PASS?.trim();
 
 const pool = new Pool({
   user: "postgres",
@@ -11,4 +19,4 @@ const pool = new Pool({
   database: "newtest",
 });
 
-module.exports = { pool };
+export { pool };
