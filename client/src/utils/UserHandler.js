@@ -5,7 +5,7 @@ import {
   setRefreshToken,
 } from "./JWTHandler.js";
 
-const API_URL = "http://localhost:4500";
+import { API_BASE_URL as API_URL } from "./api.js";
 
 export function isUserLoggedIn() {
   const token = getJwtToken();
@@ -55,4 +55,3 @@ export async function userLogin({ email, password }) {
   }
 }
 
-export {isUserLoggedIn, registerUser, userLogin};

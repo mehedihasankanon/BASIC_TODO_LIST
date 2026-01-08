@@ -5,6 +5,8 @@ import {
   setJwtToken,
 } from "./JWTHandler.js";
 
+export const API_BASE_URL = "http://localhost:4500";
+
 export async function fetchWithAuth(url, options = {}) {
   const logout = () => {
     removeTokens();
@@ -30,7 +32,7 @@ export async function fetchWithAuth(url, options = {}) {
       return response;
     }
 
-    const refreshResponse = await fetch("http://localhost:4500/auth/refresh", {
+    const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
