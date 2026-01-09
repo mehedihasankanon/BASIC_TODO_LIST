@@ -58,6 +58,39 @@ const ListTodo = ({ refreshKey }) => {
     }
   };
 
+  const toggleComplete = async (id, isCompleted) => {
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth(`${URL}/todos/${id}/complete`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_completed: isCompleted }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.message || "Failed to update todo. Please try again.");
+        return;
+      }
+
+      toast.success("Todo updated successfully!");
+
+      setTodos(
+        todos.map((todo) =>
+          todo.todo_id === id ? { ...todo, is_completed: isCompleted } : todo
+        )
+      );
+    } catch (error) {
+      console.error(error.message);
+      toast.error("Failed to update todo. Please check console for details.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     getTodos();
   }, [refreshKey]);
@@ -72,6 +105,7 @@ const ListTodo = ({ refreshKey }) => {
         <table className="w-full border-collapse mt-5 text-center bg-white shadow rounded-lg overflow-hidden">
           <thead className="bg-gray-200">
             <tr>
+              <th className="border border-gray-300 px-4 py-3"> </th>
               <th className="border border-gray-300 px-4 py-3">Description</th>
               <th className="border border-gray-300 px-4 py-3">Edit</th>
               <th className="border border-gray-300 px-4 py-3">Delete</th>
@@ -81,9 +115,27 @@ const ListTodo = ({ refreshKey }) => {
             {todos.map((todo) => (
               <tr
                 key={todo.todo_id}
-                className="hover:bg-gray-50 border-b border-gray-300"
+                className={`hover:bg-gray-50 border-b border-gray-300 transition ${
+                  todo.is_completed ? "bg-gray-100" : ""
+                }`}
               >
-                <td className="px-4 py-3 border-r border-gray-300">
+                <td className="px-4 py-3 border-r border-gray-300 text-center">
+                  <input
+                    type="checkbox"
+                    checked={todo.is_completed}
+                    onChange={(e) =>
+                      toggleComplete(todo.todo_id, e.target.checked)
+                    }
+                    className="w-5 h-5 cursor-pointer accent-green-500"
+                  />
+                </td>
+                <td
+                  className={`px-4 py-3 border-r border-gray-300 text-left ${
+                    todo.is_completed
+                      ? "line-through text-gray-400"
+                      : "text-gray-800"
+                  }`}
+                >
                   {todo.description}
                 </td>
                 <td className="px-4 py-3 border-r border-gray-300">

@@ -165,7 +165,7 @@ export default function UserLogin() {
             {errors.email && (
               <p className="text-red-500 text-sm mt-1">{errors.email}</p>
             )}
-            {formData.email && !errors.email && (
+            {formData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && !errors.email && (
               <p className="text-green-600 text-sm mt-1 flex items-center gap-1">
                 ✓ Valid email
               </p>

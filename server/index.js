@@ -84,11 +84,12 @@ app.post("/auth/register", async (req, res) => {
 
     return res.status(201).json({
       message: "User registered successfully",
-      token: token,
+      accessToken: token,
       refreshToken: refreshToken,
     });
   } catch (error) {
     console.error(error.message);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -125,17 +126,18 @@ app.post("/auth/login", async (req, res) => {
 
     return res.status(200).json({
       message: "Login successful",
-      token: token,
+      accessToken: token,
       refreshToken: refreshToken,
     });
   } catch (error) {
     console.error(error.message);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
 // refresh route
 
-app.post("/auth/refresh", authenticateJWT, async (req, res) => {
+app.post("/auth/refresh", async (req, res) => {
   try {
     const { refreshToken } = req.body;
 
@@ -152,9 +154,10 @@ app.post("/auth/refresh", authenticateJWT, async (req, res) => {
 
     const newToken = generateJwtToken(decoded.userId, decoded.email);
 
-    return res.status(200).json({ token: newToken });
+    return res.status(200).json({ accessToken: newToken });
   } catch (error) {
     console.error(error.message);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -176,6 +179,7 @@ app.post("/todos", authenticateJWT, async (req, res) => {
     res.json(newTodo.rows[0]);
   } catch (err) {
     console.error(err.message);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -184,12 +188,13 @@ app.post("/todos", authenticateJWT, async (req, res) => {
 app.get("/todos", authenticateJWT, async (req, res) => {
   try {
     const allTodos = await pool.query(
-      "SELECT * FROM todo WHERE user_id = $1 ORDER BY created_at DESC",
+      "SELECT * FROM todo WHERE user_id = $1 ORDER BY is_completed ASC, created_at DESC",
       [req.user.user_id]
     );
     res.json(allTodos.rows);
   } catch (err) {
     console.error(err.message);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -213,6 +218,7 @@ app.get("/todos/:id", authenticateJWT, async (req, res) => {
     res.json(todo.rows[0]);
   } catch (err) {
     console.error(err.message);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -240,6 +246,29 @@ app.put("/todos/:id", authenticateJWT, async (req, res) => {
     // console.log(updateTodo);
   } catch (err) {
     console.error(err.message);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// mark todo as complete/incomplete
+
+app.patch("/todos/:id/complete", authenticateJWT, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_completed } = req.body;
+    const updateTodo = await pool.query(
+      "UPDATE todo SET is_completed = $1, updated_at = CURRENT_TIMESTAMP WHERE todo_id = $2 AND user_id = $3 RETURNING *",
+      [is_completed, id, req.user.user_id]
+    );
+    if (updateTodo.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Todo not found or no changes made" });
+    }
+    res.json(updateTodo.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -261,6 +290,7 @@ app.delete("/todos/:id", authenticateJWT, async (req, res) => {
     res.json(deleteTodo.rows[0]);
   } catch (err) {
     console.error(err.message);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
