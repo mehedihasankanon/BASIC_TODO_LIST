@@ -2,6 +2,7 @@ import React, { useState } from "react";
 
 import { setJwtToken, setRefreshToken } from "../utils/JWTHandler";
 import { useNavigate, Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 import { API_BASE_URL as URL } from "../utils/api.js";
 
@@ -15,7 +16,6 @@ export default function UserRegister() {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState("");
 
   const navigate = useNavigate();
 
@@ -68,13 +68,11 @@ export default function UserRegister() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    setApiError(""); // Clear previous errors
-
     if (!validateForm()) {
       return; // Stop if validation failed
     }
 
-    setLoading(true); // I believe if I want to add animations I am going to need to use this boolean
+    setLoading(true);
 
     try {
       const response = await fetch(`${URL}/auth/register`, {
@@ -92,14 +90,15 @@ export default function UserRegister() {
       const data = await response.json();
 
       if (!response.ok) {
-        setApiError(data.message || "Registration failed");
+        toast.error(data.message || "Registration failed");
         return;
       }
 
+      toast.success("Account created! Redirecting to login...");
       navigate("/login");
     } catch (error) {
       console.error("Registration error:", error);
-      setApiError("An unexpected error occurred. Please try again.");
+      toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -111,12 +110,6 @@ export default function UserRegister() {
         <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
           Create Account
         </h1>
-
-        {apiError && (
-          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-            {apiError}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Username Field */}

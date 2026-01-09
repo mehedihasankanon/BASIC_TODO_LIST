@@ -2,6 +2,7 @@ import React, { useState } from "react";
 
 import { setJwtToken, setRefreshToken } from "../utils/JWTHandler";
 import { useNavigate, Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 import { API_BASE_URL as URL } from "../utils/api.js";
 
@@ -12,7 +13,6 @@ export default function UserLogin() {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState("");
 
   const navigate = useNavigate();
 
@@ -48,7 +48,6 @@ export default function UserLogin() {
 
   const handleSubmit = async (e) => {
     e.preventDefault(); // Don't refresh page
-    setApiError(""); // Clear previous errors
 
     if (!validateForm()) {
       return; // Stop if validation failed
@@ -71,7 +70,7 @@ export default function UserLogin() {
       const data = await response.json();
 
       if (!response.ok) {
-        setApiError(data.message || "Login failed");
+        toast.error(data.message || "Login failed");
         return;
       }
 
@@ -79,10 +78,12 @@ export default function UserLogin() {
       setJwtToken(data.accessToken);
       setRefreshToken(data.refreshToken);
 
+      toast.success("Logged in successfully!");
+
       // Go to dashboard
       navigate("/");
     } catch (error) {
-      setApiError("An error occurred");
+      toast.error("An error occurred. Please try again.");
     } finally {
       setLoading(false); // Stop loading
     }
@@ -94,12 +95,6 @@ export default function UserLogin() {
         <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
           Login
         </h1>
-
-        {apiError && (
-          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-            {apiError}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

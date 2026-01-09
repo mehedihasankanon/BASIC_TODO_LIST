@@ -2,18 +2,18 @@ import React, { Fragment, useState } from "react";
 
 import { fetchWithAuth, API_BASE_URL as URL } from "../utils/api";
 
+import { toast } from "react-toastify";
+
 const InputTodo = ({ onTodoAdded }) => {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const validateForm = () => {
     if (description.trim() === "") {
-      setError("Todo cannot be empty");
+      toast.error("Todo cannot be empty");
       return false;
     }
 
-    setError("");
     return true;
   };
 
@@ -35,12 +35,14 @@ const InputTodo = ({ onTodoAdded }) => {
         body: JSON.stringify({ description }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
-        setError(data.message || "Failed to add todo");
-        setLoading(false);
+        toast.error(data.message || "Failed to add todo. Please try again.");
         return;
       }
+
+      toast.success("Todo added successfully!");
 
       if (onTodoAdded) {
         onTodoAdded();
@@ -48,8 +50,8 @@ const InputTodo = ({ onTodoAdded }) => {
 
       setDescription("");
     } catch (err) {
-      console.error("Error adding todo:", err);
-      setError("Failed to add todo. Please try again.");
+      console.error(err.message);
+      toast.error("Failed to add todo. Please check console for details.");
     } finally {
       setLoading(false);
     }
@@ -58,12 +60,6 @@ const InputTodo = ({ onTodoAdded }) => {
   return (
     <div className="mb-8">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Add New Todo</h2>
-
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
-        </div>
-      )}
 
       <form className="flex gap-2" onSubmit={handleSubmit}>
         <input
