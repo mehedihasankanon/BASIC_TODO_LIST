@@ -165,3 +165,5 @@ yarn-error.log*
 
 **/db_pass.txt
 **/database.sql
+
+**/.github
