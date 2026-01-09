@@ -12,6 +12,7 @@ const ListTodo = ({ refreshKey }) => {
 
   const deleteTodo = async (id) => {
     setLoading(true);
+    const scrollY = window.scrollY; // Store current scroll position
     try {
       const response = await fetchWithAuth(`${URL}/todos/${id}`, {
         method: "DELETE",
@@ -33,6 +34,10 @@ const ListTodo = ({ refreshKey }) => {
     } finally {
       setLoading(false);
     }
+
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY);
+    });
   };
 
   const getTodos = async () => {
@@ -60,6 +65,8 @@ const ListTodo = ({ refreshKey }) => {
 
   const toggleComplete = async (id, isCompleted) => {
     setLoading(true);
+    const scrollY = window.scrollY; // Store current scroll position
+    
     try {
       const response = await fetchWithAuth(`${URL}/todos/${id}/complete`, {
         method: "PATCH",
@@ -78,11 +85,23 @@ const ListTodo = ({ refreshKey }) => {
 
       toast.success("Todo updated successfully!");
 
-      setTodos(
-        todos.map((todo) =>
-          todo.todo_id === id ? { ...todo, is_completed: isCompleted } : todo
-        )
+      const updatedTodos = todos.map((todo) =>
+        todo.todo_id === id ? { ...todo, is_completed: isCompleted } : todo
       );
+
+      updatedTodos.sort((a, b) => {
+        if (a.is_completed !== b.is_completed) {
+          return a.is_completed - b.is_completed;
+        }
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+
+      setTodos(updatedTodos);
+      
+      // Restore scroll position after state update
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollY);
+      });
     } catch (error) {
       console.error(error.message);
       toast.error("Failed to update todo. Please check console for details.");

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 
-import { setJwtToken, setRefreshToken } from "../utils/JWTHandler";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 

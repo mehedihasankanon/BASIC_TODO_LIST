@@ -60,7 +60,7 @@ app.post("/auth/register", async (req, res) => {
     const { username, email, password } = req.body;
 
     // check if user exists already
-    const user = await pool.query("SELECT * FROM users WHERE email = $1", [
+    const user = await pool.query("SELECT * FROM users WHERE user_email = $1", [
       email,
     ]);
 
@@ -79,8 +79,8 @@ app.post("/auth/register", async (req, res) => {
     );
 
     // now we need to generate a jwt for the user
-    const token = generateJwtToken(newUser.rows[0].user_id, email);
-    const refreshToken = generateRefreshToken(newUser.rows[0].user_id, email);
+    const token = generateJwtToken(newUser.rows[0].user_id);
+    const refreshToken = generateRefreshToken(newUser.rows[0].user_id);
 
     return res.status(201).json({
       message: "User registered successfully",
@@ -100,7 +100,7 @@ app.post("/auth/login", async (req, res) => {
     const { email, password } = req.body;
 
     // check if user exists
-    const user = await pool.query("SELECT * FROM users WHERE email = $1", [
+    const user = await pool.query("SELECT * FROM users WHERE user_email = $1", [
       email,
     ]);
 
@@ -121,8 +121,8 @@ app.post("/auth/login", async (req, res) => {
     }
 
     // jwt generation
-    const token = generateJwtToken(user.rows[0].user_id, email);
-    const refreshToken = generateRefreshToken(user.rows[0].user_id, email);
+    const token = generateJwtToken(user.rows[0].user_id);
+    const refreshToken = generateRefreshToken(user.rows[0].user_id);
 
     return res.status(200).json({
       message: "Login successful",
@@ -173,7 +173,7 @@ app.post("/todos", authenticateJWT, async (req, res) => {
 
     const newTodo = await pool.query(
       "INSERT INTO todo (description, user_id ,updated_at, created_at) VALUES($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *",
-      [description, req.user.user_id]
+      [description, req.user.userId]
     );
 
     res.json(newTodo.rows[0]);
@@ -189,7 +189,7 @@ app.get("/todos", authenticateJWT, async (req, res) => {
   try {
     const allTodos = await pool.query(
       "SELECT * FROM todo WHERE user_id = $1 ORDER BY is_completed ASC, created_at DESC",
-      [req.user.user_id]
+      [req.user.userId]
     );
     res.json(allTodos.rows);
   } catch (err) {
@@ -208,7 +208,7 @@ app.get("/todos/:id", authenticateJWT, async (req, res) => {
 
     const todo = await pool.query(
       "SELECT * FROM todo WHERE todo_id = $1 AND user_id = $2",
-      [id, req.user.user_id]
+      [id, req.user.userId]
     );
 
     if (todo.rows.length === 0) {
@@ -231,7 +231,7 @@ app.put("/todos/:id", authenticateJWT, async (req, res) => {
 
     const updateTodo = await pool.query(
       "UPDATE todo SET description = $1, updated_at = CURRENT_TIMESTAMP WHERE todo_id = $2 AND user_id = $3 RETURNING *",
-      [description, id, req.user.user_id]
+      [description, id, req.user.userId]
     );
 
     if (updateTodo.rows.length === 0) {
@@ -258,7 +258,7 @@ app.patch("/todos/:id/complete", authenticateJWT, async (req, res) => {
     const { is_completed } = req.body;
     const updateTodo = await pool.query(
       "UPDATE todo SET is_completed = $1, updated_at = CURRENT_TIMESTAMP WHERE todo_id = $2 AND user_id = $3 RETURNING *",
-      [is_completed, id, req.user.user_id]
+      [is_completed, id, req.user.userId]
     );
     if (updateTodo.rows.length === 0) {
       return res
@@ -280,7 +280,7 @@ app.delete("/todos/:id", authenticateJWT, async (req, res) => {
 
     const deleteTodo = await pool.query(
       "DELETE FROM todo WHERE todo_id = $1 AND user_id = $2 RETURNING *",
-      [id, req.user.user_id]
+      [id, req.user.userId]
     );
 
     if (deleteTodo.rows.length === 0) {

@@ -17,11 +17,10 @@ dotenv.config({ path: join(__dirname, "..", "..", ".env") });
 const jwt_key = process.env.JWT_SECRET_KEY;
 const jwt_expiration = process.env.JWT_EXPIRATION_TIME || "6h";
 
-const generateJwtToken = (userId, email) => {
+const generateJwtToken = (userId) => {
   return jwt.sign(
     {
       userId: userId,
-      email: email,
     },
     jwt_key,
     { expiresIn: jwt_expiration }
@@ -38,8 +37,8 @@ const verifyJwtToken = (token) => {
   }
 };
 
-const generateRefreshToken = (userId, email) => {
-  return jwt.sign({ userId: userId, email: email }, jwt_key, {
+const generateRefreshToken = (userId) => {
+  return jwt.sign({ userId: userId }, jwt_key, {
     expiresIn: "7d",
   });
 };

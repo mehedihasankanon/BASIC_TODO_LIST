@@ -1,36 +1,10 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 import { setJwtToken, setRefreshToken } from "../utils/JWTHandler";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { API_BASE_URL as URL } from "../utils/api.js";
-
-function calculatePasswordStrength(password) {
-  if(!password) return 0;
-
-  let score = 0;
-
-  if(password.length >= 6) score += 1;
-  if(password.length >= 11) score += 1;
-  if(password.length >= 16) score += 1;
-
-  // has uppercase
-  if(/[A-Z]/.test(password)) score += 1;
-
-  // hass lowercase
-  if(/[a-z]/.test(password)) score += 1;
-
-  // has number
-  if(/[0-9]/.test(password)) score += 1;
-
-  // has special character
-  if(/[^A-Za-z0-9]/.test(password)) score += 1;
-
-  if(score <= 1) return { strength : "Weak", score};
-  if(score <= 3) return { strength : "Medium", score};
-  return { strength : "Strong", score};
-}
 
 export default function UserLogin() {
   const [formData, setFormData] = useState({
@@ -39,7 +13,6 @@ export default function UserLogin() {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState({ strength: "", score: 0 });
 
   const navigate = useNavigate();
 
@@ -50,21 +23,12 @@ export default function UserLogin() {
       password: value,
     }));
 
-    const strengthInfo = calculatePasswordStrength(value);
-    setPasswordStrength(strengthInfo);
-  }
+    // const strengthInfo = calculatePasswordStrength(value);
+    // setPasswordStrength(strengthInfo);
+  };
 
   const handleEmailChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  }
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -165,11 +129,13 @@ export default function UserLogin() {
             {errors.email && (
               <p className="text-red-500 text-sm mt-1">{errors.email}</p>
             )}
-            {formData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && !errors.email && (
-              <p className="text-green-600 text-sm mt-1 flex items-center gap-1">
-                ✓ Valid email
-              </p>
-            )}
+            {formData.email &&
+              /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) &&
+              !errors.email && (
+                <p className="text-green-600 text-sm mt-1 flex items-center gap-1">
+                  ✓ Valid email
+                </p>
+              )}
           </div>
 
           <div>
@@ -194,31 +160,12 @@ export default function UserLogin() {
             {errors.password && (
               <p className="text-red-500 text-sm mt-1">{errors.password}</p>
             )}
-            
+
             {formData.password && !errors.password && (
               <div className="mt-3">
                 <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                  <div
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      passwordStrength.strength === "Weak"
-                        ? "w-1/3 bg-red-500"
-                        : passwordStrength.strength === "Medium"
-                        ? "w-2/3 bg-yellow-500"
-                        : "w-full bg-green-500"
-                    }`}
-                  />
+                  <div className="h-2 rounded-full transition-all duration-300 bg-green-500" />
                 </div>
-                <p
-                  className={`text-xs mt-2 font-semibold ${
-                    passwordStrength.strength === "Weak"
-                      ? "text-red-600"
-                      : passwordStrength.strength === "Medium"
-                      ? "text-yellow-600"
-                      : "text-green-600"
-                  }`}
-                >
-                  Password Strength: {passwordStrength.strength}
-                </p>
               </div>
             )}
           </div>
