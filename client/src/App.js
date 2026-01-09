@@ -1,8 +1,12 @@
 import React, { Fragment } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
 import "./App.css";
-
 
 // components
 
@@ -11,6 +15,7 @@ import ListTodo from "./components/ListTodo";
 import UserLogin from "./components/UserLogin";
 import UserRegister from "./components/UserRegister";
 import PrivateRoute from "./components/PrivateRoute";
+import Dashboard from "./components/Dashboard";
 
 function App() {
   return (
@@ -20,8 +25,10 @@ function App() {
           path="/"
           element={
             <PrivateRoute>
-              <InputTodo />
-              <ListTodo />
+              <Dashboard>
+                <InputTodo />
+                <ListTodo />
+              </Dashboard>
             </PrivateRoute>
           }
         />
@@ -30,7 +37,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
-  )
+  );
 }
 
 export default App;
