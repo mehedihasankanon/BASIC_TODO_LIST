@@ -16,7 +16,7 @@ import {
   verifyRefreshToken,
 } from "./utils/jwt.js";
 
-import { pool } from "../db.js";
+import { supabase } from "../db.js";
 
 const app = express();
 
@@ -45,6 +45,7 @@ const authenticateJWT = (req, res, next) => {
     next();
   } catch (error) {
     console.error(error.message);
+    return res.status(403).json({ message: "Invalid token" });
   }
 };
 
@@ -60,11 +61,15 @@ app.post("/auth/register", async (req, res) => {
     const { username, email, password } = req.body;
 
     // check if user exists already
-    const user = await pool.query("SELECT * FROM users WHERE user_email = $1", [
-      email,
-    ]);
+    const { data: existingUser, error: lookupError } = await supabase
+      .from("users")
+      .select("user_id")
+      .eq("user_email", email)
+      .maybeSingle();
 
-    if (user.rows.length > 0) {
+    if (lookupError) throw lookupError;
+
+    if (existingUser) {
       return res.status(409).json({ message: "User already exists" });
     }
 
@@ -73,14 +78,27 @@ app.post("/auth/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // insert the new user into the database
-    const newUser = await pool.query(
-      "INSERT into users (user_name, user_email, user_password) VALUES ($1, $2, $3) RETURNING *",
-      [username, email, hashedPassword]
-    );
+    const { data: newUser, error: insertError } = await supabase
+      .from("users")
+      .insert({
+        user_name: username,
+        user_email: email,
+        user_password: hashedPassword,
+      })
+      .select("user_id, user_name, user_email")
+      .single();
+
+    if (insertError) {
+      // unique_violation (another request registered the same email first)
+      if (insertError.code === "23505") {
+        return res.status(409).json({ message: "User already exists" });
+      }
+      throw insertError;
+    }
 
     // now we need to generate a jwt for the user
-    const token = generateJwtToken(newUser.rows[0].user_id);
-    const refreshToken = generateRefreshToken(newUser.rows[0].user_id);
+    const token = generateJwtToken(newUser.user_id);
+    const refreshToken = generateRefreshToken(newUser.user_id);
 
     return res.status(201).json({
       message: "User registered successfully",
@@ -100,29 +118,30 @@ app.post("/auth/login", async (req, res) => {
     const { email, password } = req.body;
 
     // check if user exists
-    const user = await pool.query("SELECT * FROM users WHERE user_email = $1", [
-      email,
-    ]);
+    const { data: user, error: lookupError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("user_email", email)
+      .maybeSingle();
 
-    if (user.rows.length === 0) {
+    if (lookupError) throw lookupError;
+
+    if (!user) {
       return res
         .status(409)
         .json({ message: "User not found. Register first." });
     }
 
     // returns a boolean to check if the password is correct
-    const validPass = await bcrypt.compare(
-      password,
-      user.rows[0].user_password
-    );
+    const validPass = await bcrypt.compare(password, user.user_password);
 
     if (!validPass) {
       return res.status(409).json({ message: "Incorrect password" });
     }
 
     // jwt generation
-    const token = generateJwtToken(user.rows[0].user_id);
-    const refreshToken = generateRefreshToken(user.rows[0].user_id);
+    const token = generateJwtToken(user.user_id);
+    const refreshToken = generateRefreshToken(user.user_id);
 
     return res.status(200).json({
       message: "Login successful",
@@ -164,19 +183,24 @@ app.post("/auth/refresh", async (req, res) => {
 // create a todo
 
 app.post("/todos", authenticateJWT, async (req, res) => {
-  // waits for the function to complete before it continues
-
   try {
-    // console.log(req.body);
-
     const { description } = req.body;
+    const now = new Date().toISOString();
 
-    const newTodo = await pool.query(
-      "INSERT INTO todo (description, user_id ,updated_at, created_at) VALUES($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *",
-      [description, req.user.userId]
-    );
+    const { data: newTodo, error } = await supabase
+      .from("todo")
+      .insert({
+        description,
+        user_id: req.user.userId,
+        created_at: now,
+        updated_at: now,
+      })
+      .select()
+      .single();
 
-    res.json(newTodo.rows[0]);
+    if (error) throw error;
+
+    res.json(newTodo);
   } catch (err) {
     console.error(err.message);
     return res.status(500).json({ message: "Internal server error" });
@@ -187,11 +211,16 @@ app.post("/todos", authenticateJWT, async (req, res) => {
 
 app.get("/todos", authenticateJWT, async (req, res) => {
   try {
-    const allTodos = await pool.query(
-      "SELECT * FROM todo WHERE user_id = $1 ORDER BY is_completed ASC, created_at DESC",
-      [req.user.userId]
-    );
-    res.json(allTodos.rows);
+    const { data: allTodos, error } = await supabase
+      .from("todo")
+      .select("*")
+      .eq("user_id", req.user.userId)
+      .order("is_completed", { ascending: true })
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    res.json(allTodos);
   } catch (err) {
     console.error(err.message);
     return res.status(500).json({ message: "Internal server error" });
@@ -202,20 +231,22 @@ app.get("/todos", authenticateJWT, async (req, res) => {
 
 app.get("/todos/:id", authenticateJWT, async (req, res) => {
   try {
-    // console.log(req.params.id);
-
     const { id } = req.params;
 
-    const todo = await pool.query(
-      "SELECT * FROM todo WHERE todo_id = $1 AND user_id = $2",
-      [id, req.user.userId]
-    );
+    const { data: todo, error } = await supabase
+      .from("todo")
+      .select("*")
+      .eq("todo_id", id)
+      .eq("user_id", req.user.userId)
+      .maybeSingle();
 
-    if (todo.rows.length === 0) {
+    if (error) throw error;
+
+    if (!todo) {
       return res.status(404).json({ message: "Todo not found" });
     }
 
-    res.json(todo.rows[0]);
+    res.json(todo);
   } catch (err) {
     console.error(err.message);
     return res.status(500).json({ message: "Internal server error" });
@@ -229,21 +260,26 @@ app.put("/todos/:id", authenticateJWT, async (req, res) => {
     const { id } = req.params;
     const { description } = req.body;
 
-    const updateTodo = await pool.query(
-      "UPDATE todo SET description = $1, updated_at = CURRENT_TIMESTAMP WHERE todo_id = $2 AND user_id = $3 RETURNING *",
-      [description, id, req.user.userId]
-    );
+    const { data: updateTodo, error } = await supabase
+      .from("todo")
+      .update({
+        description,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("todo_id", id)
+      .eq("user_id", req.user.userId)
+      .select()
+      .maybeSingle();
 
-    if (updateTodo.rows.length === 0) {
+    if (error) throw error;
+
+    if (!updateTodo) {
       return res
         .status(404)
         .json({ message: "Todo not found or no changes made" });
     }
 
-    res.json(updateTodo.rows[0]);
-
-    // res.json("updated Todo");
-    // console.log(updateTodo);
+    res.json(updateTodo);
   } catch (err) {
     console.error(err.message);
     return res.status(500).json({ message: "Internal server error" });
@@ -256,16 +292,27 @@ app.patch("/todos/:id/complete", authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
     const { is_completed } = req.body;
-    const updateTodo = await pool.query(
-      "UPDATE todo SET is_completed = $1, updated_at = CURRENT_TIMESTAMP WHERE todo_id = $2 AND user_id = $3 RETURNING *",
-      [is_completed, id, req.user.userId]
-    );
-    if (updateTodo.rows.length === 0) {
+
+    const { data: updateTodo, error } = await supabase
+      .from("todo")
+      .update({
+        is_completed,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("todo_id", id)
+      .eq("user_id", req.user.userId)
+      .select()
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!updateTodo) {
       return res
         .status(404)
         .json({ message: "Todo not found or no changes made" });
     }
-    res.json(updateTodo.rows[0]);
+
+    res.json(updateTodo);
   } catch (err) {
     console.error(err.message);
     return res.status(500).json({ message: "Internal server error" });
@@ -278,22 +325,29 @@ app.delete("/todos/:id", authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const deleteTodo = await pool.query(
-      "DELETE FROM todo WHERE todo_id = $1 AND user_id = $2 RETURNING *",
-      [id, req.user.userId]
-    );
+    const { data: deleteTodo, error } = await supabase
+      .from("todo")
+      .delete()
+      .eq("todo_id", id)
+      .eq("user_id", req.user.userId)
+      .select()
+      .maybeSingle();
 
-    if (deleteTodo.rows.length === 0) {
+    if (error) throw error;
+
+    if (!deleteTodo) {
       return res.status(404).json({ message: "Todo not found" });
     }
 
-    res.json(deleteTodo.rows[0]);
+    res.json(deleteTodo);
   } catch (err) {
     console.error(err.message);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
 
-app.listen(4500, () => {
-  console.log("Server is running on port 4500");
+const port = process.env.PORT || 4500;
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port} (Supabase API backend)`);
 });
